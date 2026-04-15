@@ -75,6 +75,17 @@ export default function LabPage() {
     setLab((prev) => prev ? { ...prev, progress: { ...prev.progress, ...data } } : prev);
   }, [labId]);
 
+  // When the main exploit objective is achieved, complete all tasks at once
+  const handleExploitSuccess = useCallback(async (_taskId: string) => {
+    const res = await fetch(`/api/labs/${labId}/progress`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "complete_all" }),
+    });
+    const data = await res.json();
+    setLab((prev) => prev ? { ...prev, progress: { ...prev.progress, ...data } } : prev);
+  }, [labId]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
@@ -230,7 +241,7 @@ export default function LabPage() {
           <p className="text-text-dim text-xs mb-3 font-mono">
             Type <span className="text-accent-green">help</span> for available commands · Tab to autocomplete · ↑/↓ for history
           </p>
-          <Terminal commands={lab.terminalCommands} labId={lab.id} username={username} />
+          <Terminal commands={lab.terminalCommands} labId={lab.id} username={username} completedTasks={lab.progress.completedTasks} />
         </div>
       )}
 
@@ -248,7 +259,7 @@ export default function LabPage() {
           <ChatInterface
             labId={lab.id}
             exploitConfig={lab.exploitConfig}
-            onExploitSuccess={(taskId) => handleTaskToggle(taskId, true)}
+            onExploitSuccess={handleExploitSuccess}
           />
         </div>
       )}

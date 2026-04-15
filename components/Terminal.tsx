@@ -6,12 +6,15 @@ import { Terminal as TerminalIcon, RotateCcw, ChevronRight } from "lucide-react"
 interface TerminalCommand {
   output: string;
   delay?: number;
+  completedOutput?: string;
+  completedWhen?: string;
 }
 
 interface TerminalProps {
   commands: Record<string, TerminalCommand>;
   labId: string;
   username: string;
+  completedTasks?: string[];
 }
 
 interface HistoryEntry {
@@ -24,7 +27,7 @@ const BANNER = `╔════════════════════�
 ║          Type 'help' to see available commands           ║
 ╚══════════════════════════════════════════════════════════╝`;
 
-export default function Terminal({ commands, labId, username }: TerminalProps) {
+export default function Terminal({ commands, labId, username, completedTasks = [] }: TerminalProps) {
   const [history, setHistory] = useState<HistoryEntry[]>([
     { type: "system", content: BANNER },
     { type: "system", content: `[✓] Lab environment loaded: ${labId}` },
@@ -70,7 +73,13 @@ export default function Terminal({ commands, labId, username }: TerminalProps) {
         if (cmd_def.delay) {
           await new Promise((r) => setTimeout(r, cmd_def.delay));
         }
-        setHistory((h) => [...h, { type: "output", content: cmd_def.output }, { type: "system", content: "" }]);
+        const output =
+          cmd_def.completedWhen &&
+          cmd_def.completedOutput &&
+          completedTasks.includes(cmd_def.completedWhen)
+            ? cmd_def.completedOutput
+            : cmd_def.output;
+        setHistory((h) => [...h, { type: "output", content: output }, { type: "system", content: "" }]);
       } else {
         setHistory((h) => [
           ...h,
@@ -84,7 +93,7 @@ export default function Terminal({ commands, labId, username }: TerminalProps) {
 
       setIsProcessing(false);
     },
-    [commands]
+    [commands, completedTasks]
   );
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

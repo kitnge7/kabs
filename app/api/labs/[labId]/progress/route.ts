@@ -42,7 +42,7 @@ export async function POST(
   if (!lab) return NextResponse.json({ error: "Lab not found" }, { status: 404 });
 
   const body = await req.json();
-  const { taskId, action } = body as { taskId?: string; action?: "complete" | "uncomplete" | "start" };
+  const { taskId, action } = body as { taskId?: string; action?: "complete" | "uncomplete" | "start" | "complete_all" };
 
   const existing = getLabProgress(session.sub, params.labId);
   const completedTasks: string[] = existing
@@ -54,6 +54,13 @@ export async function POST(
 
   if (action === "start" && newStatus === "not_started") {
     newStatus = "in_progress";
+  }
+
+  if (action === "complete_all") {
+    lab.tasks.forEach((t) => {
+      if (!completedTasks.includes(t.id)) completedTasks.push(t.id);
+    });
+    if (newStatus === "not_started") newStatus = "in_progress";
   }
 
   if (taskId && action === "complete") {
