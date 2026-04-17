@@ -71,8 +71,7 @@ export async function POST(req: NextRequest) {
     await setSessionCookie(token);
 
     return NextResponse.json({ ok: true, username: username.toLowerCase() });
-  } catch (err) {
-    console.error("Signup error:", err);
+  } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

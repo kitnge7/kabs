@@ -1,7 +1,4 @@
-// Uses Node.js 22+ built-in SQLite (node:sqlite)
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
-
+import { DatabaseSync } from "node:sqlite";
 import path from "path";
 import fs from "fs";
 
@@ -58,8 +55,24 @@ function initSchema(db: InstanceType<typeof DatabaseSync>) {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS replay_events (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      lab_id TEXT NOT NULL,
+      surface TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      detail TEXT NOT NULL,
+      severity TEXT NOT NULL DEFAULT 'info',
+      phase_id TEXT,
+      artifact_id TEXT,
+      created_at INTEGER DEFAULT (unixepoch()),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_progress_user ON lab_progress(user_id);
     CREATE INDEX IF NOT EXISTS idx_chat_user_lab ON chat_history(user_id, lab_id);
+    CREATE INDEX IF NOT EXISTS idx_replay_user_lab ON replay_events(user_id, lab_id);
   `);
 }
 
@@ -143,6 +156,14 @@ export function upsertLabProgress(
   );
 }
 
+export function resetLabProgress(userId: string, labId: string) {
+  const db = getDb();
+  db.prepare("DELETE FROM lab_progress WHERE user_id = ? AND lab_id = ?").run(
+    userId,
+    labId
+  );
+}
+
 // ── Chat History ───────────────────────────────────────────────────────────
 
 export function getChatHistory(userId: string, labId: string): ChatRow[] {
@@ -172,6 +193,57 @@ export function clearChatHistory(userId: string, labId: string) {
   db.prepare("DELETE FROM chat_history WHERE user_id = ? AND lab_id = ?").run(userId, labId);
 }
 
+// ── Replay Events ──────────────────────────────────────────────────────────
+
+export function getReplayEvents(userId: string, labId: string): ReplayEventRow[] {
+  const db = getDb();
+  return db
+    .prepare(
+      "SELECT * FROM replay_events WHERE user_id = ? AND lab_id = ? ORDER BY created_at ASC"
+    )
+    .all(userId, labId) as unknown as ReplayEventRow[];
+}
+
+export function addReplayEvent(
+  id: string,
+  userId: string,
+  labId: string,
+  surface: string,
+  eventType: string,
+  title: string,
+  detail: string,
+  severity: string,
+  phaseId?: string,
+  artifactId?: string
+) {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO replay_events
+      (id, user_id, lab_id, surface, event_type, title, detail, severity, phase_id, artifact_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    userId,
+    labId,
+    surface,
+    eventType,
+    title,
+    detail,
+    severity,
+    phaseId ?? null,
+    artifactId ?? null,
+    Date.now()
+  );
+}
+
+export function clearReplayEvents(userId: string, labId: string) {
+  const db = getDb();
+  db.prepare("DELETE FROM replay_events WHERE user_id = ? AND lab_id = ?").run(
+    userId,
+    labId
+  );
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface UserRow {
@@ -198,5 +270,19 @@ export interface ChatRow {
   lab_id: string;
   role: string;
   content: string;
+  created_at: number;
+}
+
+export interface ReplayEventRow {
+  id: string;
+  user_id: string;
+  lab_id: string;
+  surface: string;
+  event_type: string;
+  title: string;
+  detail: string;
+  severity: string;
+  phase_id: string | null;
+  artifact_id: string | null;
   created_at: number;
 }

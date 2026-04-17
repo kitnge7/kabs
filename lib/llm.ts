@@ -13,18 +13,11 @@ interface LLMProvider {
 
 const PROVIDERS: LLMProvider[] = [
   {
-    name: "groq",
-    url: "https://api.groq.com/openai/v1/chat/completions",
-    apiKey: process.env.GROQ_API_KEY || "",
-    model: "llama-3.1-8b-instant",
-    maxTokens: 1024,
-  },
-  {
-    name: "cerebras",
-    url: "https://api.cerebras.ai/v1/chat/completions",
-    apiKey: process.env.CEREBRAS_API_KEY || "",
-    model: "llama3.1-8b",
-    maxTokens: 1024,
+    name: "nvidia",
+    url: "https://integrate.api.nvidia.com/v1/chat/completions",
+    apiKey: process.env.NVIDIA_API_KEY || "",
+    model: "meta/llama-3.3-70b-instruct",
+    maxTokens: 8192,
   },
 ];
 
@@ -48,7 +41,7 @@ async function callProvider(
       Authorization: `Bearer ${provider.apiKey}`,
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(60_000),
   });
 
   if (!res.ok) {
@@ -62,9 +55,8 @@ async function callProvider(
 }
 
 /**
- * Chat with automatic provider fallback.
- * Tries Groq first; on any error silently falls back to Cerebras.
- * Returns the assistant message string.
+ * Chat with provider fallback.
+ * Returns the assistant message string or a graceful offline message.
  */
 export async function chat(
   messages: ChatMessage[],
@@ -78,15 +70,11 @@ export async function chat(
       return await callProvider(provider, messages, temperature);
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      // silently try next provider
     }
   }
 
-  // Both providers failed – return a graceful offline message
-  console.error("All LLM providers failed:", lastError?.message);
-  return (
-    "The AI guide is temporarily unavailable. " +
-    "Please review the lab documentation and try again shortly."
+  throw new Error(
+    `LLM provider unavailable: ${lastError?.message ?? "unknown error"}`
   );
 }
 

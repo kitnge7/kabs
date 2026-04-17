@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionFromCookies } from "@/lib/auth";
 import { getAllLabProgress } from "@/lib/db";
-import { getAllLabs } from "@/lib/labs";
+import { filterCompletedPhaseIds, getAllLabs, getReplayStatus } from "@/lib/labs";
 
 export const runtime = "nodejs";
 
@@ -19,26 +19,37 @@ export async function GET() {
 
   const labsWithProgress = labs.map((lab) => {
     const prog = progressMap[lab.id];
+    const completedPhaseIds = prog
+      ? filterCompletedPhaseIds(
+          lab,
+          JSON.parse(prog.completed_tasks) as string[]
+        )
+      : [];
+
     return {
       id: lab.id,
       title: lab.title,
       subtitle: lab.subtitle,
       difficulty: lab.difficulty,
       category: lab.category,
+      exploitClass: lab.exploitClass,
       tags: lab.tags,
       cve: lab.cve,
-      incident: lab.incident,
+      incidentDate: lab.incidentDate,
       description: lab.description,
-      objectives: lab.objectives,
-      taskCount: lab.tasks.length,
-      progress: prog
-        ? {
-            status: prog.status,
-            completedTasks: JSON.parse(prog.completed_tasks) as string[],
-            startedAt: prog.started_at,
-            completedAt: prog.completed_at,
-          }
-        : { status: "not_started", completedTasks: [] },
+      confidence: lab.confidence,
+      fidelity: lab.fidelity,
+      sourceCount: lab.sources.length,
+      phaseCount: lab.replay.phases.length,
+      progress: {
+        status: getReplayStatus(lab, completedPhaseIds),
+        completedPhaseIds,
+        startedAt: prog?.started_at ?? undefined,
+        completedAt:
+          getReplayStatus(lab, completedPhaseIds) === "completed"
+            ? prog?.completed_at ?? undefined
+            : undefined,
+      },
     };
   });
 

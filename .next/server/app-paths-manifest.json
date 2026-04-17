@@ -1,8 +1,1 @@
-{
-  "/api/labs/[labId]/chat/route": "app/api/labs/[labId]/chat/route.js",
-  "/api/auth/me/route": "app/api/auth/me/route.js",
-  "/api/labs/[labId]/route": "app/api/labs/[labId]/route.js",
-  "/api/labs/route": "app/api/labs/route.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/labs/[labId]/page": "app/dashboard/labs/[labId]/page.js"
-}
+{}

@@ -3,9 +3,9 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "fallback-dev-secret-change-in-production"
-);
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret) throw new Error("JWT_SECRET environment variable is required");
+const SECRET = new TextEncoder().encode(jwtSecret);
 
 const COOKIE_NAME = "ai_lab_session";
 const TOKEN_TTL = "7d"; // 7 days
