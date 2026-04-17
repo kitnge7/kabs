@@ -71,13 +71,13 @@ function toClientEvent(draft: ReplayEventDraft): ReplayEventPayload {
   };
 }
 
-function persistClientEvents(
+async function persistClientEvents(
   userId: string,
   labId: string,
   events: ReplayEventPayload[]
 ) {
-  events.forEach((event) => {
-    addReplayEvent(
+  for (const event of events) {
+    await addReplayEvent(
       event.id,
       userId,
       labId,
@@ -89,20 +89,17 @@ function persistClientEvents(
       event.phaseId,
       event.artifactId
     );
-  });
+  }
 }
 
-export function normalizeReplayProgress(
+export async function normalizeReplayProgress(
   lab: Lab,
   userId: string,
   labId: string
-): ReplayProgressPayload {
-  const row = getLabProgress(userId, labId);
+): Promise<ReplayProgressPayload> {
+  const row = await getLabProgress(userId, labId);
   const completedPhaseIds = row
-    ? filterCompletedPhaseIds(
-        lab,
-        JSON.parse(row.completed_tasks) as string[]
-      )
+    ? filterCompletedPhaseIds(lab, JSON.parse(row.completed_tasks) as string[])
     : [];
   const status = getReplayStatus(lab, completedPhaseIds);
 
@@ -114,22 +111,22 @@ export function normalizeReplayProgress(
   };
 }
 
-function persistProgress(
+async function persistProgress(
   lab: Lab,
   userId: string,
   completedPhaseIds: string[]
-): ReplayProgressPayload {
+): Promise<ReplayProgressPayload> {
   const filtered = filterCompletedPhaseIds(lab, completedPhaseIds);
   const status = getReplayStatus(lab, filtered);
-  const existing = getLabProgress(userId, lab.id);
+  const existing = await getLabProgress(userId, lab.id);
   const now = Math.floor(Date.now() / 1000);
 
   if (filtered.length === 0) {
-    resetLabProgress(userId, lab.id);
+    await resetLabProgress(userId, lab.id);
     return { status: "not_started", completedPhaseIds: [] };
   }
 
-  upsertLabProgress(
+  await upsertLabProgress(
     existing?.id ?? uuidv4(),
     userId,
     lab.id,
@@ -175,10 +172,7 @@ function makePhaseEvents(
     .filter((item): item is ReplayEventPayload => Boolean(item));
 }
 
-function resolveTerminalOutput(
-  action: TerminalAction,
-  completedPhaseIds: string[]
-) {
+function resolveTerminalOutput(action: TerminalAction, completedPhaseIds: string[]) {
   if (
     action.completedWhenPhase &&
     action.completedOutput &&
@@ -189,11 +183,12 @@ function resolveTerminalOutput(
   return action.output;
 }
 
-export function getReplayEventsForClient(
+export async function getReplayEventsForClient(
   userId: string,
   labId: string
-): ReplayEventPayload[] {
-  return getReplayEvents(userId, labId).map((event) => ({
+): Promise<ReplayEventPayload[]> {
+  const rows = await getReplayEvents(userId, labId);
+  return rows.map((event) => ({
     id: event.id,
     surface: event.surface,
     eventType: event.event_type,
@@ -206,27 +201,24 @@ export function getReplayEventsForClient(
   }));
 }
 
-export function resetReplayState(userId: string, labId: string) {
-  clearReplayEvents(userId, labId);
-  resetLabProgress(userId, labId);
+export async function resetReplayState(userId: string, labId: string) {
+  await clearReplayEvents(userId, labId);
+  await resetLabProgress(userId, labId);
 }
 
-export function runReplayAction(params: {
+export async function runReplayAction(params: {
   userId: string;
   labId: string;
   surface: ReplaySurface;
   input: string;
-}): ReplayActionResponse {
+}): Promise<ReplayActionResponse> {
   const { userId, labId, surface, input } = params;
   const lab = getLabById(labId);
-
-  if (!lab) {
-    throw new Error("Lab not found");
-  }
+  if (!lab) throw new Error("Lab not found");
 
   const trimmed = input.trim();
   const normalizedInput = trimmed.toLowerCase();
-  const currentProgress = normalizeReplayProgress(lab, userId, labId);
+  const currentProgress = await normalizeReplayProgress(lab, userId, labId);
   const currentPhases = currentProgress.completedPhaseIds;
 
   if (surface === "terminal") {
@@ -243,7 +235,7 @@ export function runReplayAction(params: {
     }
 
     if (action.reset) {
-      resetReplayState(userId, labId);
+      await resetReplayState(userId, labId);
       return {
         surface,
         output: action.output,
@@ -257,9 +249,7 @@ export function runReplayAction(params: {
 
     if (
       action.requiresCompletedPhases &&
-      action.requiresCompletedPhases.some(
-        (phaseId) => !currentPhases.includes(phaseId)
-      )
+      action.requiresCompletedPhases.some((phaseId) => !currentPhases.includes(phaseId))
     ) {
       return {
         surface,
@@ -275,8 +265,7 @@ export function runReplayAction(params: {
       action.blockedByPhases &&
       action.blockedByPhases.some((phaseId) => currentPhases.includes(phaseId))
     ) {
-      const blockedOutput =
-        action.blockedOutput ?? resolveTerminalOutput(action, currentPhases);
+      const blockedOutput = action.blockedOutput ?? resolveTerminalOutput(action, currentPhases);
       const blockedEvents = [
         toClientEvent({
           surface,
@@ -286,7 +275,7 @@ export function runReplayAction(params: {
           severity: "success",
         }),
       ];
-      persistClientEvents(userId, labId, blockedEvents);
+      await persistClientEvents(userId, labId, blockedEvents);
       return {
         surface,
         output: blockedOutput,
@@ -304,7 +293,7 @@ export function runReplayAction(params: {
     const newlyCompletedPhaseIds = nextPhases.filter(
       (phaseId) => !currentPhases.includes(phaseId)
     );
-    const progress = persistProgress(lab, userId, nextPhases);
+    const progress = await persistProgress(lab, userId, nextPhases);
     const eventDrafts: ReplayEventDraft[] = [];
 
     if (action.eventTitle && action.eventDetail) {
@@ -321,7 +310,7 @@ export function runReplayAction(params: {
       ...eventDrafts.map(toClientEvent),
       ...makePhaseEvents(lab, newlyCompletedPhaseIds, surface),
     ];
-    persistClientEvents(userId, labId, newEvents);
+    await persistClientEvents(userId, labId, newEvents);
 
     return {
       surface,
@@ -329,16 +318,12 @@ export function runReplayAction(params: {
       progress,
       events: newEvents,
       newlyCompletedPhaseIds,
-      objectiveReached: progress.completedPhaseIds.includes(
-        lab.replay.objectivePhaseId
-      ),
+      objectiveReached: progress.completedPhaseIds.includes(lab.replay.objectivePhaseId),
     };
   }
 
   const attack = lab.replay.attack;
-  if (!attack) {
-    throw new Error("Attack surface not enabled for this lab");
-  }
+  if (!attack) throw new Error("Attack surface not enabled for this lab");
 
   const newEvents: ReplayEventPayload[] = [
     toClientEvent({
@@ -379,7 +364,7 @@ export function runReplayAction(params: {
     }
   }
 
-  const progress = persistProgress(lab, userId, nextPhases);
+  const progress = await persistProgress(lab, userId, nextPhases);
 
   newEvents.push(
     toClientEvent({
@@ -391,16 +376,14 @@ export function runReplayAction(params: {
           ? matchedRule.eventTitle
           : "Replay attack rejected",
       detail: reply,
-      severity: matchedBlockedRule
-        ? "success"
-        : matchedRule?.severity ?? "warning",
+      severity: matchedBlockedRule ? "success" : matchedRule?.severity ?? "warning",
       phaseId: newlyCompletedPhaseIds[0],
     })
   );
 
   const phaseEvents = makePhaseEvents(lab, newlyCompletedPhaseIds, surface);
   const persistedEvents = [...newEvents, ...phaseEvents];
-  persistClientEvents(userId, labId, persistedEvents);
+  await persistClientEvents(userId, labId, persistedEvents);
 
   return {
     surface,

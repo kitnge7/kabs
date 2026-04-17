@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = getUserByEmail(email.toLowerCase());
+    const user = await getUserByEmail(email.toLowerCase());
     if (!user) {
       // Constant-time response to prevent user enumeration
       await new Promise((r) => setTimeout(r, 200));

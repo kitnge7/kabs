@@ -19,5 +19,5 @@ export async function GET(
     return NextResponse.json({ error: "Lab not found" }, { status: 404 });
   }
 
-  return NextResponse.json(getReplayEventsForClient(session.sub, params.labId));
+  return NextResponse.json(await getReplayEventsForClient(session.sub, params.labId));
 }

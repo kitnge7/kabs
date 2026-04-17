@@ -15,7 +15,7 @@ export async function GET(
   const lab = getLabById(params.labId);
   if (!lab) return NextResponse.json({ error: "Lab not found" }, { status: 404 });
 
-  const history = getChatHistory(session.sub, params.labId);
+  const history = await getChatHistory(session.sub, params.labId);
 
   return NextResponse.json(
     history.map((m) => ({ role: m.role, content: m.content, id: m.id }))

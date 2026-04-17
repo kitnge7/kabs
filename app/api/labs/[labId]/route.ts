@@ -19,7 +19,7 @@ export async function GET(
     return NextResponse.json({ error: "Lab not found" }, { status: 404 });
   }
 
-  const prog = getLabProgress(session.sub, params.labId);
+  const prog = await getLabProgress(session.sub, params.labId);
   const completedPhaseIds = prog
     ? filterCompletedPhaseIds(lab, JSON.parse(prog.completed_tasks) as string[])
     : [];

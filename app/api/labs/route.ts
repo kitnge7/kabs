@@ -12,7 +12,7 @@ export async function GET() {
   }
 
   const labs = getAllLabs();
-  const progressRows = getAllLabProgress(session.sub);
+  const progressRows = await getAllLabProgress(session.sub);
   const progressMap = Object.fromEntries(
     progressRows.map((p) => [p.lab_id, p])
   );

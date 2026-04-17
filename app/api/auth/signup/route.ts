@@ -48,19 +48,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: pwResult.message }, { status: 400 });
     }
 
-    const existingEmail = getUserByEmail(email.toLowerCase());
+    const existingEmail = await getUserByEmail(email.toLowerCase());
     if (existingEmail) {
       return NextResponse.json({ error: "Email already registered" }, { status: 409 });
     }
 
-    const existingUsername = getUserByUsername(username.toLowerCase());
+    const existingUsername = await getUserByUsername(username.toLowerCase());
     if (existingUsername) {
       return NextResponse.json({ error: "Username already taken" }, { status: 409 });
     }
 
     const id = uuidv4();
     const passwordHash = await hashPassword(password);
-    createUser(id, email.toLowerCase(), username.toLowerCase(), passwordHash);
+    await createUser(id, email.toLowerCase(), username.toLowerCase(), passwordHash);
 
     const token = await signToken({
       sub: id,

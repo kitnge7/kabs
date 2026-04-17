@@ -27,7 +27,7 @@ export async function POST(
   };
 
   if (action === "reset") {
-    resetReplayState(session.sub, params.labId);
+    await resetReplayState(session.sub, params.labId);
     return NextResponse.json({
       progress: { status: "not_started", completedPhaseIds: [] },
       events: [],
@@ -43,7 +43,7 @@ export async function POST(
     return NextResponse.json({ error: "Input is required" }, { status: 400 });
   }
 
-  const result = runReplayAction({
+  const result = await runReplayAction({
     userId: session.sub,
     labId: params.labId,
     surface,
