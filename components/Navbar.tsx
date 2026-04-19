@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Shield, LayoutGrid, LogOut, User, ChevronDown } from "lucide-react";
+import { Shield, LayoutGrid, LogOut, User, ChevronDown, Wrench } from "lucide-react";
 
 interface NavbarProps {
   username: string;
@@ -38,6 +38,13 @@ export default function Navbar({ username }: NavbarProps) {
           >
             <LayoutGrid className="w-4 h-4" />
             Labs
+          </Link>
+          <Link
+            href="/dashboard/v2"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-hover text-sm transition-colors"
+          >
+            <Wrench className="w-4 h-4 text-accent-red" />
+            <span className="text-accent-red">Live Agent</span>
           </Link>
         </nav>
 

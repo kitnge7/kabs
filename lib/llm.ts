@@ -19,6 +19,20 @@ const PROVIDERS: LLMProvider[] = [
     model: "meta/llama-3.3-70b-instruct",
     maxTokens: 8192,
   },
+  {
+    name: "groq",
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    apiKey: process.env.GROQ_API_KEY || "",
+    model: "llama-3.1-8b-instant",
+    maxTokens: 8192,
+  },
+  {
+    name: "cerebras",
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    apiKey: process.env.CEREBRAS_API_KEY || "",
+    model: "llama3.1-8b",
+    maxTokens: 1024,
+  },
 ];
 
 async function callProvider(
@@ -55,27 +69,22 @@ async function callProvider(
 }
 
 /**
- * Chat with provider fallback.
- * Returns the assistant message string or a graceful offline message.
+ * Chat with provider fallback. Silently tries each provider in order.
  */
 export async function chat(
   messages: ChatMessage[],
   temperature = 0.7
 ): Promise<string> {
-  let lastError: Error | null = null;
-
   for (const provider of PROVIDERS) {
     if (!provider.apiKey) continue;
     try {
       return await callProvider(provider, messages, temperature);
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
+    } catch {
+      // silently fall through to next provider
     }
   }
 
-  throw new Error(
-    `LLM provider unavailable: ${lastError?.message ?? "unknown error"}`
-  );
+  throw new Error("LLM provider unavailable. Please try again later.");
 }
 
 /**

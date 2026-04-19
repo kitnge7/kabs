@@ -1,3 +1,25 @@
 {
-  "/dashboard/page": "app/dashboard/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
+  "/api/auth/logout/route": "app/api/auth/logout/route.js",
+  "/api/labs/[labId]/events/route": "app/api/labs/[labId]/events/route.js",
+  "/api/auth/me/route": "app/api/auth/me/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/auth/signup/route": "app/api/auth/signup/route.js",
+  "/api/labs/[labId]/chat/route": "app/api/labs/[labId]/chat/route.js",
+  "/api/labs/[labId]/route": "app/api/labs/[labId]/route.js",
+  "/api/labs/[labId]/replay/route": "app/api/labs/[labId]/replay/route.js",
+  "/api/labs/route": "app/api/labs/route.js",
+  "/api/v2/labs/[labId]/reset/route": "app/api/v2/labs/[labId]/reset/route.js",
+  "/api/v2/labs/[labId]/route": "app/api/v2/labs/[labId]/route.js",
+  "/api/v2/labs/[labId]/state/route": "app/api/v2/labs/[labId]/state/route.js",
+  "/api/v2/labs/[labId]/agent/route": "app/api/v2/labs/[labId]/agent/route.js",
+  "/api/labs/[labId]/exploit/route": "app/api/labs/[labId]/exploit/route.js",
+  "/api/v2/labs/route": "app/api/v2/labs/route.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(auth)/signup/page": "app/(auth)/signup/page.js",
+  "/dashboard/labs/[labId]/page": "app/dashboard/labs/[labId]/page.js",
+  "/dashboard/v2/labs/[labId]/page": "app/dashboard/v2/labs/[labId]/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/v2/page": "app/dashboard/v2/page.js"
 }
